@@ -1,6 +1,6 @@
-# RMCS Slave
+# flying-bro
 
-[无下位机控制系统 RMCS（RoboMaster Control System）](https://github.com/Alliance-Algorithm/RMCS) 的下位机固件。
+[无下位机控制系统 RMCS（RoboMaster Control System）](https://github.com/Alliance-Algorithm/RMCS) 的下位机固件（河北师范大学金钢战队飞镖开发项目）。
 
 与上位机通过 USB 2.0 FS 端口连接，即可以 BULK 模式实时转发单片机各接口 (CAN/SPI/UART等) 的所有数据至上位机。
 
