@@ -12,14 +12,18 @@
 
 namespace usb {
 
+// 中断安全的无锁环形缓冲区
+// 用于在中断上下文(数据接收)和主循环(USB发送)之间安全传输数据
+// 使用无锁CAS操作，保证中断安全，无需关闭中断
 class InterruptSafeBuffer final : utility::Immovable {
 public:
     friend class Cdc;
 
-    static constexpr size_t batch_size  = 64;
-    static constexpr size_t batch_count = 8;
+    static constexpr size_t batch_size  = 64;  // 每批次大小: USB BULK传输包大小
+    static constexpr size_t batch_count = 8;   // 批次数: 2的幂次，用于位掩码
     static_assert(std::has_single_bit(batch_count), "Batch count must be a power of 2");
 
+    // 构造时预填充0xAE标记，表示空包
     constexpr InterruptSafeBuffer() {
         for (auto& batch : batches_) {
             std::byte* start_of_packet = batch.allocate(1);

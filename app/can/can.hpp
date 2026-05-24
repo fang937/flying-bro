@@ -15,6 +15,10 @@
 
 namespace can {
 
+// CAN总线通信类
+// 支持标准帧(11位ID)和扩展帧(29位ID)
+// 接收: 中断回调 → 解析CAN帧 → 写入上行缓冲区 → USB转发
+// 发送: USB下发 → 写入发送队列 → 主循环轮询CAN邮箱发送
 class Can : private utility::Immovable {
 public:
     using Lazy = utility::Lazy<Can, CAN_HandleTypeDef*, uint32_t, uint32_t>;
@@ -25,6 +29,7 @@ public:
         config_can(hal_filter_bank, hal_slave_start_filter_bank);
     }
 
+    // 从USB下行数据解析CAN帧并加入发送队列
     bool read_buffer_write_device(std::byte*& buffer) {
         auto construct = [&buffer](std::byte* storage) {
             auto& mailbox = *new (storage) TransmitMailboxData{};
@@ -64,6 +69,7 @@ public:
         }
     }
 
+    // 尝试发送CAN数据: 检查空闲邮箱数量，批量发送
     bool try_transmit() {
         auto hcan = hal_can_handle_;
 
@@ -174,6 +180,7 @@ private:
 
     CAN_HandleTypeDef* hal_can_handle_;
 
+    // CAN字段头: 4位field_id + 扩展帧标志 + 远程帧标志 + 数据存在标志
     struct __attribute__((packed)) FieldHeader {
         uint8_t field_id            : 4;
         bool is_extended_can_id     : 1;
@@ -191,15 +198,16 @@ private:
         uint8_t data_length : 3;
     };
 
+    // CAN发送邮箱数据结构: 直接映射到STM32 CAN硬件寄存器格式
     struct TransmitMailboxData {
         uint32_t identifier;                // CAN_TxMailBox_TypeDef::TIR
         uint32_t data_length_and_timestamp; // CAN_TxMailBox_TypeDef::TDTR
         uint32_t data[2];                   // CAN_TxMailBox_TypeDef::TDLR & TDHR
     };
-    utility::RingBuffer<TransmitMailboxData, 16> transmit_buffer_;
+    utility::RingBuffer<TransmitMailboxData, 16> transmit_buffer_;  // 发送环形队列
 };
 
-inline constinit Can::Lazy can1{&hcan1, 0, 14};
-inline constinit Can::Lazy can2{&hcan2, 14, 14};
+inline constinit Can::Lazy can1{&hcan1, 0, 14};   // CAN1: 滤波器组0-13
+inline constinit Can::Lazy can2{&hcan2, 14, 14};  // CAN2: 滤波器组14-27
 
 } // namespace can

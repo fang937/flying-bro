@@ -13,6 +13,8 @@
 
 namespace spi {
 
+// SPI外设模块接口基类
+// 定义芯片选择引脚和传输完成回调接口
 class SpiModuleInterface {
 public:
     friend class Spi;
@@ -27,8 +29,11 @@ protected:
     const uint16_t chip_select_pin;
 };
 
-enum class SpiTransmitReceiveMode { BLOCK, INTERRUPT };
+enum class SpiTransmitReceiveMode { BLOCK, INTERRUPT };  // SPI传输模式: 阻塞/中断
 
+// SPI总线管理类
+// 使用CAS原子操作确保同时只有一个传输任务
+// 支持阻塞和中断两种传输模式
 class Spi : private utility::Immovable {
 public:
     using Lazy = utility::Lazy<Spi, SPI_HandleTypeDef*>;
@@ -39,6 +44,8 @@ public:
         , spi_module_(nullptr)
         , tx_rx_size_(0) {}
 
+    // SPI传输任务: RAII模式，析构时自动执行传输
+    // 通过move语义确保任务只执行一次
     template <SpiTransmitReceiveMode mode>
     class TransmitReceiveTask {
     public:
@@ -130,13 +137,13 @@ private:
 
     SPI_HandleTypeDef* hal_spi_handle_;
 
-    bool task_created_;
+    bool task_created_;  // CAS标志: 防止同时创建多个传输任务
 
-    SpiModuleInterface* spi_module_;
+    SpiModuleInterface* spi_module_;  // 当前选中的SPI从设备
     size_t tx_rx_size_;
 
     static constexpr size_t max_buffer_size_ = 16;
-    alignas(4) uint8_t tx_data_buffer_[max_buffer_size_];
+    alignas(4) uint8_t tx_data_buffer_[max_buffer_size_];  // 4字节对齐，优化SPI DMA
     alignas(4) uint8_t rx_data_buffer_[max_buffer_size_];
 };
 

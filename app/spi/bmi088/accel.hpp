@@ -14,6 +14,9 @@
 
 namespace spi::bmi088 {
 
+// BMI088加速度计驱动类
+// 通过SPI接口读取加速度数据(默认±6G量程, 1600Hz输出)
+// 数据就绪时触发GPIO中断 → SPI读取 → USB转发
 class Accelerometer final : SpiModuleInterface {
 public:
     using Lazy = utility::Lazy<Accelerometer, Spi::Lazy*>;
@@ -30,6 +33,7 @@ public:
         _1600 = 0x0C
     };
 
+    // 加速度计三轴数据: X/Y/Z各16位有符号整数
     struct __attribute__((packed)) Data {
         int16_t x;
         int16_t y;

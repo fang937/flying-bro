@@ -7,6 +7,9 @@
 
 namespace utility {
 
+// 延迟初始化模板: 将对象初始化推迟到init()调用时
+// 解决C++全局对象初始化顺序不确定的问题
+// 使用原子状态变量保证线程安全
 template <typename T, typename... Args>
 class Lazy {
 public:
@@ -55,6 +58,8 @@ public:
 
 private:
     using ArgTupleT = std::tuple<Args...>;
+
+    // 使用union节省内存: 对象和构造参数共用同一块内存
 
     template <typename TupleT, std::size_t... I>
     constexpr void construct_object(TupleT&& t, std::index_sequence<I...>) {

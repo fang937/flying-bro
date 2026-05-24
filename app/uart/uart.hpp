@@ -15,6 +15,9 @@
 
 namespace uart {
 
+// UART串口通信类
+// 支持中断接收(空闲中断)和中断发送
+// 使用双缓冲机制: 写入缓冲区和发送缓冲区交替切换，避免数据竞争
 class Uart {
 public:
     using Lazy = utility::Lazy<Uart, UART_HandleTypeDef*, size_t>;
@@ -51,6 +54,7 @@ public:
         return completed;
     }
 
+    // 尝试发送UART数据: 将写入完成的缓冲区切换为发送状态
     bool try_transmit() {
         // Under normal circumstances, the trigger_hal_receive function is called within the
         // interrupt service routine (ISR). However, if the ISR fails to execute for any reason, the
@@ -124,23 +128,25 @@ private:
 
     UART_HandleTypeDef* hal_uart_handle_;
 
+    // UART字段头: 4位field_id + 4位数据长度(0表示长度在后续字节)
     struct __attribute__((packed)) FieldHeader {
         uint8_t field_id  : 4;
         uint8_t data_size : 4;
     };
 
-    std::byte receive_buffer_[64];
+    std::byte receive_buffer_[64];    // 接收缓冲区
     uint16_t max_receive_size_;
 
+    // 双缓冲: 交替写入和发送，避免中断和主循环竞争
     struct {
         std::atomic<uint8_t> written_size = 0;
         std::byte data[128];
     } transmit_buffers_[2];
-    std::atomic<uint8_t> buffer_writing_ = 0;
+    std::atomic<uint8_t> buffer_writing_ = 0;  // 当前写入缓冲区索引
 };
 
-inline constinit Uart::Lazy uart1{&huart6, 15};
-inline constinit Uart::Lazy uart2{&huart1, 15};
-inline constinit Uart::Lazy uart_dbus{&huart3, 31};
+inline constinit Uart::Lazy uart1{&huart6, 15};      // UART6: 115200 baud, 最大15字节
+inline constinit Uart::Lazy uart2{&huart1, 15};      // UART1: 115200 baud, 最大15字节
+inline constinit Uart::Lazy uart_dbus{&huart3, 31};  // UART3: DBUS遥控器, 100000 baud, 最大31字节
 
 } // namespace uart

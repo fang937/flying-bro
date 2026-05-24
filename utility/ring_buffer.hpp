@@ -8,6 +8,9 @@
 
 namespace utility {
 
+// 无锁环形缓冲区模板
+// 使用原子变量实现生产者-消费者模式，支持中断安全
+// max_size必须为2的幂次，使用位掩码替代取模运算
 template <typename T, size_t max_size>
 requires(max_size >= 2 && std::has_single_bit(max_size))
 class RingBuffer {
@@ -109,12 +112,12 @@ public:
     }
 
 private:
-    static constexpr size_t mask = max_size - 1;
+    static constexpr size_t mask = max_size - 1;  // 位掩码，替代取模运算
 
-    std::atomic<size_t> in_{0}, out_{0};
+    std::atomic<size_t> in_{0}, out_{0};  // 生产者索引和消费者索引
     struct {
         alignas(T) std::byte data[sizeof(T)];
-    } storage_[max_size]{};
+    } storage_[max_size]{};  // 原始存储，支持placement new
 };
 
 }; // namespace utility

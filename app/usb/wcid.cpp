@@ -1,4 +1,6 @@
-// This file provides processing for WCID requests to help Windows identify the device.
+// WCID (Windows Compatible ID) 请求处理
+// 实现Windows免驱功能: 通过WCID描述符让Windows自动识别为WinUSB设备
+// 无需手动安装驱动，即插即用
 
 // A WCID device, where WCID stands for "Windows Compatible ID", is an USB device that provides
 // extra information to a Windows system, in order to facilitate automated driver installation and,

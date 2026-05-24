@@ -9,6 +9,11 @@
 #include "utility/lazy.hpp"
 
 namespace buzzer {
+
+// 蜂鸣器控制类
+// 支持4音符旋律播放，通过定时器PWM输出音频
+// 音符频率表: {静音, C5(523Hz), D5(587Hz), G5(783Hz)}
+// 从上位机接收乐谱数据，自动循环播放
 class Buzzer {
 public:
     Buzzer() {
@@ -32,14 +37,17 @@ public:
             reset();
     }
 
+    // 播放指定音符: 设置TIM4的ARR和CCR3寄存器控制频率和音量
     void play(uint8_t note_id) {
-        uint32_t note_index[4]   = {1, 523, 587, 783};
-        uint32_t volume_index[4] = {0, 1, 1, 1};
+        uint32_t note_index[4]   = {1, 523, 587, 783};    // 音符频率表
+        uint32_t volume_index[4] = {0, 1, 1, 1};           // 音量系数
 
         htim4.Instance->ARR  = (5 * 100000 / note_index[note_id] - 1) * 1u;
         htim4.Instance->CCR3 = (8 * 10500 / note_index[note_id] - 1) * volume_index[note_id] * 1u;
     }
 
+    // 定时更新播放状态: 由HAL_IncTick()每毫秒调用
+    // 使用状态机控制旋律播放: 4个小节 × 4个音符的循环
     void update(uint32_t tick) {
         if (tick & 0b1)
             return;
@@ -70,10 +78,10 @@ public:
     }
 
 private:
-    uint8_t last_playing;     // format: id'part
-    uint8_t playing_progress; // range: 0 to 255
+    uint8_t last_playing;     // format: id'part (高4位:当前乐谱ID, 低4位:当前音符位置)
+    uint8_t playing_progress; // range: 0 to 255 (音符播放进度)
 
-    std::atomic<uint8_t> buzzer_score;
+    std::atomic<uint8_t> buzzer_score;  // 乐谱数据: 8位编码4个音符(每2位一个音符)
 
     struct __attribute__((packed)) BuzzerField {
         uint8_t field_id    : 8;

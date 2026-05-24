@@ -10,6 +10,13 @@
 
 namespace led {
 
+// LED指示灯控制类
+// 通过TIM5的3个PWM通道控制RGB LED
+// 状态指示:
+//   - 绿色呼吸灯: 正常工作
+//   - 黄色闪烁: 上行缓冲区满(CAN/UART/SPI)
+//   - 青色闪烁: 下行缓冲区满(USB)
+//   - 黄青交替: 两者都满
 class Led {
 public:
     Led() {
@@ -27,13 +34,16 @@ public:
     }
 
     // Lighting effect lasts for 5 seconds
+    // 上行缓冲区满告警: 持续5秒(5000ms)
     void uplink_buffer_full() {
         uplink_full_reset_counter_.store(5000, std::memory_order::relaxed);
     }
+    // 下行缓冲区满告警: 持续5秒(5000ms)
     void downlink_buffer_full() {
         downlink_full_reset_counter_.store(5000, std::memory_order::relaxed);
     }
 
+    // 定时更新LED状态: 由HAL_IncTick()每毫秒调用
     void update(uint32_t tick) {
         // Do not change the lighting when user controlling
         if (user_controlling_.load(std::memory_order::relaxed))
@@ -90,9 +100,9 @@ public:
     }
 
 private:
-    std::atomic<bool> user_controlling_;
+    std::atomic<bool> user_controlling_;  // 用户控制标志: 为true时不自动更新LED
 
-    std::atomic<uint16_t> uplink_full_reset_counter_, downlink_full_reset_counter_;
+    std::atomic<uint16_t> uplink_full_reset_counter_, downlink_full_reset_counter_;  // 告警倒计时(ms)
 };
 
 inline utility::Lazy<Led> led;

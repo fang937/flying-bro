@@ -7,6 +7,7 @@
 
 namespace usb {
 
+// HAL回调: USB CDC初始化
 inline int8_t hal_cdc_init_callback() {
     USBD_CDC_SetRxBuffer(&hUsbDeviceFS, reinterpret_cast<uint8_t*>(Cdc::receive_buffer_));
     return USBD_OK;
@@ -19,11 +20,14 @@ inline int8_t hal_cdc_control_callback(uint8_t command, uint8_t* buffer, uint16_
 }
 
 // NOLINTNEXTLINE(readability-non-const-parameter) because bullshit HAL api.
+// HAL回调: USB接收数据处理 (中断上下文)
+// 将上位机下发的数据按字段ID分发到对应外设的发送队列
 inline int8_t hal_cdc_receive_callback(uint8_t* buffer, uint32_t* length) {
     auto iterator = reinterpret_cast<std::byte*>(buffer);
     assert(iterator == Cdc::receive_buffer_);
 
     auto sentinel = iterator + *length;
+    // 第一个字节0x81是协议头，跳过
     assert(*iterator == std::byte{0x81});
     iterator++;
 
@@ -31,22 +35,24 @@ inline int8_t hal_cdc_receive_callback(uint8_t* buffer, uint32_t* length) {
         struct __attribute__((packed)) Header {
             field::DownlinkId field_id : 4;
         };
+        // 解析4位字段ID，决定数据转发目标
         auto field_id = std::launder(reinterpret_cast<Header*>(iterator))->field_id;
 
+        // 按字段ID分发到对应外设的接收队列
         if (field_id == field::DownlinkId::CONTROL_) {
             cdc->read_control_field(iterator);
         } else if (field_id == field::DownlinkId::CAN1_) {
-            can::can1->read_buffer_write_device(iterator);
+            can::can1->read_buffer_write_device(iterator);  // USB → CAN1
         } else if (field_id == field::DownlinkId::CAN2_) {
-            can::can2->read_buffer_write_device(iterator);
+            can::can2->read_buffer_write_device(iterator);  // USB → CAN2
         } else if (field_id == field::DownlinkId::UART1_) {
-            uart::uart1->read_buffer_write_device(iterator);
+            uart::uart1->read_buffer_write_device(iterator);  // USB → UART1
         } else if (field_id == field::DownlinkId::UART2_) {
-            uart::uart2->read_buffer_write_device(iterator);
+            uart::uart2->read_buffer_write_device(iterator);  // USB → UART2
         } else if (field_id == field::DownlinkId::UART3_) {
-            uart::uart_dbus->read_buffer_write_device(iterator);
+            uart::uart_dbus->read_buffer_write_device(iterator);  // USB → DBUS
         } else if (field_id == field::DownlinkId::BUZZER_) {
-            buzzer::buzzer->read_buffer_write_device(iterator);
+            buzzer::buzzer->read_buffer_write_device(iterator);  // USB → 蜂鸣器
         } else
             break;
     }

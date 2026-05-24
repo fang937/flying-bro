@@ -17,6 +17,8 @@ extern "C" {
 extern USBD_HandleTypeDef hUsbDeviceFS;
 }
 
+// USB CDC通信类: 单片机与上位机的唯一通信接口
+// 所有外设数据都通过此类以BULK模式转发到上位机
 class Cdc : utility::Immovable {
 public:
     using Lazy = utility::Lazy<Cdc>;
@@ -25,10 +27,13 @@ public:
 
     InterruptSafeBuffer& get_transmit_buffer() { return transmit_buffer_; }
 
+    // 尝试发送一批数据到上位机
+    // 由主循环轮询调用，使用非阻塞方式
     bool try_transmit() {
         if (!device_ready())
             return false;
 
+        // 处理连接事件: 清空缓冲区，重置LED
         if (connecting_.load(std::memory_order::relaxed)) {
             transmit_buffer_.clear();
             connecting_.store(false, std::memory_order::relaxed);
@@ -37,6 +42,7 @@ public:
             return false;
         }
 
+        // 从环形缓冲区弹出一个批次(64字节)
         auto batch = transmit_buffer_.pop_batch();
         if (!batch)
             return false;
