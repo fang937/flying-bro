@@ -1,6 +1,0 @@
-.cache
-.vscode
-.xmake
-.clangd
-build
-compile_commands.json
