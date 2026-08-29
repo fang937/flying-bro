@@ -117,14 +117,9 @@ private:
     }
 
     bool trigger_hal_receive() {
-        HAL_StatusTypeDef status = HAL_UARTEx_ReceiveToIdle_DMA(
-            hal_uart_handle_, reinterpret_cast<uint8_t*>(receive_buffer_), max_receive_size_);
-
-        if (status == HAL_OK) {
-            __HAL_DMA_DISABLE_IT(hal_uart_handle_->hdmarx, DMA_IT_HT);
-            return true;
-        }
-        return false;
+        return HAL_UARTEx_ReceiveToIdle_IT(
+                   hal_uart_handle_, reinterpret_cast<uint8_t*>(receive_buffer_), max_receive_size_)
+            == HAL_OK;
     }
 
     UART_HandleTypeDef* hal_uart_handle_;
@@ -145,7 +140,7 @@ private:
 };
 
 inline constinit Uart::Lazy uart1{&huart6, 15};
-inline constinit Uart::Lazy uart2{&huart1, 31};
+inline constinit Uart::Lazy uart2{&huart1, 15};
 inline constinit Uart::Lazy uart_dbus{&huart3, 31};
 
 } // namespace uart

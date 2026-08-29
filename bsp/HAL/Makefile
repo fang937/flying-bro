@@ -50,7 +50,6 @@ Core/Src/can.c \
 Core/Src/usart.c \
 Core/Src/sysmem.c \
 Core/Src/syscalls.c \
-Core/Src/dma.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd_ex.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c \
