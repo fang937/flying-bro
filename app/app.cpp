@@ -8,7 +8,7 @@
 #include "app/spi/bmi088/gyro.hpp"
 #include "app/uart/uart.hpp"
 #include "app/usb/cdc.hpp"
-
+#include "app/servo/servo.hpp"
 // C链接入口点，供HAL启动代码调用
 extern "C" {
 void AppEntry() { app.init().main(); }
@@ -26,6 +26,7 @@ App::App() {
     uart::uart_dbus.init();  // DBUS: 遥控器接口，100000 baud
     spi::bmi088::accelerometer.init();  // 加速度计: 1600Hz
     spi::bmi088::gyroscope.init();  // 陀螺仪: 2000Hz
+    servo::controller.init();
     __enable_irq();  // 启用全局中断，开始接收数据
 };
 

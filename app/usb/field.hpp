@@ -51,6 +51,7 @@ enum class DownlinkId : uint8_t {
 
     LED_    = 11,
     BUZZER_ = 12,
+    SERVO_  = 13,
 };
 
 } // namespace usb::field

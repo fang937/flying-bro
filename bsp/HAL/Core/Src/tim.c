@@ -26,6 +26,35 @@
 
 TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
+TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim8;
+
+static void pwm_servo_init(TIM_HandleTypeDef *htim, TIM_TypeDef *instance) {
+  TIM_MasterConfigTypeDef master = {0};
+  TIM_OC_InitTypeDef oc = {0};
+  htim->Instance = instance;
+  htim->Init.Prescaler = 167;
+  htim->Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim->Init.Period = 19999;
+  htim->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_PWM_Init(htim) != HAL_OK) Error_Handler();
+  master.MasterOutputTrigger = TIM_TRGO_RESET;
+  master.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(htim, &master) != HAL_OK) Error_Handler();
+  oc.OCMode = TIM_OCMODE_PWM1;
+  oc.Pulse = 1500;
+  oc.OCPolarity = TIM_OCPOLARITY_HIGH;
+  oc.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(htim, &oc, TIM_CHANNEL_1) != HAL_OK) Error_Handler();
+  if (HAL_TIM_PWM_ConfigChannel(htim, &oc, TIM_CHANNEL_2) != HAL_OK) Error_Handler();
+  if (HAL_TIM_PWM_ConfigChannel(htim, &oc, TIM_CHANNEL_3) != HAL_OK) Error_Handler();
+  if (HAL_TIM_PWM_ConfigChannel(htim, &oc, TIM_CHANNEL_4) != HAL_OK) Error_Handler();
+  HAL_TIM_MspPostInit(htim);
+}
+
+void MX_TIM1_Init(void) { pwm_servo_init(&htim1, TIM1); }
+void MX_TIM8_Init(void) { pwm_servo_init(&htim8, TIM8); }
 
 /* TIM4 init function */
 void MX_TIM4_Init(void)
@@ -137,6 +166,9 @@ void MX_TIM5_Init(void)
 void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef* tim_pwmHandle)
 {
 
+  if(tim_pwmHandle->Instance==TIM1) __HAL_RCC_TIM1_CLK_ENABLE();
+  if(tim_pwmHandle->Instance==TIM8) __HAL_RCC_TIM8_CLK_ENABLE();
+
   if(tim_pwmHandle->Instance==TIM4)
   {
   /* USER CODE BEGIN TIM4_MspInit 0 */
@@ -212,11 +244,30 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
 
   /* USER CODE END TIM5_MspPostInit 1 */
   }
+  else if(timHandle->Instance==TIM1)
+  {
+    __HAL_RCC_GPIOE_CLK_ENABLE();
+    GPIO_InitStruct.Pin = GPIO_PIN_9|GPIO_PIN_11|GPIO_PIN_13|GPIO_PIN_14;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP; GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW; GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
+    HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+  }
+  else if(timHandle->Instance==TIM8)
+  {
+    __HAL_RCC_GPIOC_CLK_ENABLE(); __HAL_RCC_GPIOI_CLK_ENABLE();
+    GPIO_InitStruct.Pin = GPIO_PIN_6; GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL; GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF3_TIM8; HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7; HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
+  }
 
 }
 
 void HAL_TIM_PWM_MspDeInit(TIM_HandleTypeDef* tim_pwmHandle)
 {
+
+  if(tim_pwmHandle->Instance==TIM1) __HAL_RCC_TIM1_CLK_DISABLE();
+  if(tim_pwmHandle->Instance==TIM8) __HAL_RCC_TIM8_CLK_DISABLE();
 
   if(tim_pwmHandle->Instance==TIM4)
   {

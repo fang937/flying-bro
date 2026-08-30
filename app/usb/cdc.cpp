@@ -4,7 +4,7 @@
 #include "app/can/can.hpp"
 #include "app/uart/uart.hpp"
 #include "app/usb/field.hpp"
-
+#include "app/servo/servo.hpp"
 namespace usb {
 
 // HAL回调: USB CDC初始化
@@ -25,7 +25,6 @@ inline int8_t hal_cdc_control_callback(uint8_t command, uint8_t* buffer, uint16_
 inline int8_t hal_cdc_receive_callback(uint8_t* buffer, uint32_t* length) {
     auto iterator = reinterpret_cast<std::byte*>(buffer);
     assert(iterator == Cdc::receive_buffer_);
-
     auto sentinel = iterator + *length;
     // 第一个字节0x81是协议头，跳过
     assert(*iterator == std::byte{0x81});
@@ -45,6 +44,8 @@ inline int8_t hal_cdc_receive_callback(uint8_t* buffer, uint32_t* length) {
             can::can1->read_buffer_write_device(iterator);  // USB → CAN1
         } else if (field_id == field::DownlinkId::CAN2_) {
             can::can2->read_buffer_write_device(iterator);  // USB → CAN2
+        } else if (field_id == field::DownlinkId::SERVO_) {
+            servo::controller.read_buffer_write_device(iterator);
         } else if (field_id == field::DownlinkId::UART1_) {
             uart::uart1->read_buffer_write_device(iterator);  // USB → UART1
         } else if (field_id == field::DownlinkId::UART2_) {
