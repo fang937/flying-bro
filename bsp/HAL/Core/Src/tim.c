@@ -46,8 +46,10 @@ static void pwm_advanced_init(TIM_HandleTypeDef *htim, TIM_TypeDef *instance) {
   oc.Pulse = 1500;
   oc.OCPolarity = TIM_OCPOLARITY_HIGH;
   oc.OCFastMode = TIM_OCFAST_DISABLE;
-  for (uint32_t ch = TIM_CHANNEL_1; ch <= TIM_CHANNEL_4; ch <<= 1)
-    if (HAL_TIM_PWM_ConfigChannel(htim, &oc, ch) != HAL_OK) Error_Handler();
+  if (HAL_TIM_PWM_ConfigChannel(htim, &oc, TIM_CHANNEL_1) != HAL_OK) Error_Handler();
+  if (HAL_TIM_PWM_ConfigChannel(htim, &oc, TIM_CHANNEL_2) != HAL_OK) Error_Handler();
+  if (HAL_TIM_PWM_ConfigChannel(htim, &oc, TIM_CHANNEL_3) != HAL_OK) Error_Handler();
+  if (HAL_TIM_PWM_ConfigChannel(htim, &oc, TIM_CHANNEL_4) != HAL_OK) Error_Handler();
   HAL_TIM_MspPostInit(htim);
 }
 

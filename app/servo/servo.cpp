@@ -21,7 +21,10 @@ void Controller::set_angle(uint8_t id, uint8_t angle) {
     angle = std::min<uint8_t>(180, angle); angles_[id - 1] = angle;
     uint32_t pulse = 500u + (static_cast<uint32_t>(angle) * 2000u) / 180u;
     TIM_HandleTypeDef* timer = id <= 4 ? &htim1 : &htim8;
-    uint32_t channel = 1u << ((id <= 4 ? id : id - 4) - 1);
+    constexpr uint32_t channels[] = {
+        TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4};
+    const auto channel_index = (id <= 4 ? id : id - 4) - 1;
+    uint32_t channel = channels[channel_index];
     __HAL_TIM_SET_COMPARE(timer, channel, pulse);
 }
 
@@ -66,6 +69,7 @@ bool Controller::handle_fixed(const uint8_t* data, uint8_t length) {
 void Controller::read_buffer_write_device(std::byte*& buffer) {
     const auto header = static_cast<uint8_t>(*buffer++);
     const auto size = static_cast<uint8_t>(header >> 4);
+    if (size == 0) return;
     auto* payload = reinterpret_cast<const uint8_t*>(buffer);
     handle(payload, size);
     buffer += size;

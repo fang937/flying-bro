@@ -22,7 +22,14 @@ inline int8_t hal_cdc_control_callback(uint8_t command, uint8_t* buffer, uint16_
 // NOLINTNEXTLINE(readability-non-const-parameter) because bullshit HAL api.
 inline int8_t hal_cdc_receive_callback(uint8_t* buffer, uint32_t* length) {
     auto iterator = reinterpret_cast<std::byte*>(buffer);
-    assert(iterator == Cdc::receive_buffer_);
+    auto receive_again = [&]() {
+        USBD_CDC_SetRxBuffer(&hUsbDeviceFS, buffer);
+        USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+    };
+    if (iterator != Cdc::receive_buffer_ || length == nullptr || *length == 0) {
+        receive_again();
+        return USBD_OK;
+    }
 
     if (*length >= 5 && buffer[0] == 0xA5) {
         servo::controller.handle(buffer, static_cast<uint8_t>(*length));
@@ -32,7 +39,10 @@ inline int8_t hal_cdc_receive_callback(uint8_t* buffer, uint32_t* length) {
     }
 
     auto sentinel = iterator + *length;
-    assert(*iterator == std::byte{0x81});
+    if (*iterator != std::byte{0x81}) {
+        receive_again();
+        return USBD_OK;
+    }
     iterator++;
 
     while (iterator < sentinel) {
@@ -67,7 +77,10 @@ inline int8_t hal_cdc_receive_callback(uint8_t* buffer, uint32_t* length) {
         } else
             break;
     }
-    assert(iterator == sentinel); // TODO
+    if (iterator != sentinel) {
+        receive_again();
+        return USBD_OK;
+    }
 
     USBD_CDC_SetRxBuffer(&hUsbDeviceFS, buffer);
     USBD_CDC_ReceivePacket(&hUsbDeviceFS);
